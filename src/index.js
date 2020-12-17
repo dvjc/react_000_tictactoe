@@ -50,6 +50,7 @@ class Game extends React.Component {
         this.state = {
             history: [{
                 squares: Array(9).fill(null),
+                coordinate: '',
             }],
             stepNumber: 0,
             xIsNext: true,
@@ -60,13 +61,20 @@ class Game extends React.Component {
         const history = this.state.history.slice(0, this.state.stepNumber + 1);
         const current = history[history.length - 1];
         const squares = current.squares.slice();
-        if( calculateWinner(squares) || squares[i]) {
+        const fetchWinner = calculateWinner(current.squares);
+        const winner = fetchWinner.winner;
+        if( winner || squares[i]) {
             return;
         }
         squares[i] = this.state.xIsNext ? 'X' : 'O';
+
+        let column = i % 3;
+        let row = (i - column) / 3;
+        let coordinate = ` (${ row },${ column }) `;
         this.setState({
             history: history.concat([{
-                squares: squares
+                squares: squares,
+                coordinate: coordinate
             }]),
             stepNumber: history.length,
             xIsNext: !this.state.xIsNext,
@@ -83,11 +91,14 @@ class Game extends React.Component {
     render() {
         const history = this.state.history;
         const current = history[this.state.stepNumber];
-        const winner = calculateWinner(current.squares);
+        const fetchWinner = calculateWinner(current.squares);
+        const winner = fetchWinner.winner;
+        const isTie = this.state.history.length > 9;
 
         const moves = history.map((step,move) => {
+            const coordinate = step.coordinate;
             const desc = move ?
-                'Go to move #' + move :
+                'Go to move #' + move + coordinate :
                 'Go to game start';
             return (
                 <li key={move}>
@@ -99,6 +110,8 @@ class Game extends React.Component {
         let status;
         if (winner) {
             status = 'Winner: ' + winner;
+        } else if (isTie) {
+            status = 'Draw: No Winner!';
         } else {
             status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
         }
@@ -141,9 +154,15 @@ function calculateWinner(squares){
     for (let i = 0; i < lines.length; i++){
         const [a, b, c] = lines[i];
         if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
+            return {
+                winner: squares[a],
+                line: lines[i]
+            }
         }
-        return null;
     }
+    return {
+        winner: null,
+        line: []
+    };
 }
   
