@@ -33,7 +33,7 @@ ol, ul {
 }
 
 .encolored {
-  background: #ff0000;
+  background: #1e771e;
   border: 1px solid #999;
   float: left;
   font-size: 24px;
@@ -44,6 +44,7 @@ ol, ul {
   margin-top: -1px;
   padding: 0;
   text-align: center;
+  color: white;
   width: 34px;
 }
 

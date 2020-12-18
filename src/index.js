@@ -4,7 +4,7 @@ import './index.css';
 
 function Square(props){
     return (
-        <button className="square" onClick={props.onClick}>
+        <button className="square" id={props.id} onClick={props.onClick}>
             {props.value}
         </button>
     );
@@ -16,6 +16,7 @@ class Board extends React.Component {
         return (
             <Square
                 value={this.props.squares[i]}
+                id={"s" + i}
                 onClick={() => this.props.onClick(i)}
             />
         );
@@ -88,6 +89,26 @@ class Game extends React.Component {
         });
     }
 
+    // example: [0,1,2]
+    cleanupBackgrounds(line){
+        // no winner
+        if ( ['null','undefined'].indexOf('' + line ) >= 0 || ((line).hasOwnProperty("length") && line.length === 0) ) {
+            [0,1,2,3,4,5,6,7,8].map(position => {
+                let square = document.getElementById("s" + position);
+                if (square){
+                    square.setAttribute("class", "square");
+                }
+            });
+        } else {
+            line.map(position => {
+                let square = document.getElementById("s" + position);
+                if (square){
+                    square.setAttribute("class", "encolored");
+                }
+            });
+        }
+    }
+
     render() {
         const history = this.state.history;
         const current = history[this.state.stepNumber];
@@ -108,13 +129,16 @@ class Game extends React.Component {
         });
 
         let status;
+        let line;
         if (winner) {
             status = 'Winner: ' + winner;
+            line = fetchWinner.line;
         } else if (isTie) {
             status = 'Draw: No Winner!';
         } else {
             status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
         }
+        this.cleanupBackgrounds(line);
 
         return (
         <div className="game">
