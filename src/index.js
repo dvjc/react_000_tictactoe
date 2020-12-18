@@ -69,9 +69,7 @@ class Game extends React.Component {
         }
         squares[i] = this.state.xIsNext ? 'X' : 'O';
 
-        let column = i % 3;
-        let row = (i - column) / 3;
-        let coordinate = ` (${ row },${ column }) `;
+        let coordinate = this.convertPositionToCoordinate(i);
         this.setState({
             history: history.concat([{
                 squares: squares,
@@ -109,6 +107,42 @@ class Game extends React.Component {
         }
     }
 
+    convertPositionToCoordinate(i){
+        let column = i % 3;
+        let row = (i - column) / 3;
+        let coordinate = ` (${ row },${ column }) `;
+        return coordinate;
+    }
+
+    convertCoordinateToPosition(coordinate){
+        let i = -1;
+        const split0 = coordinate.split("(");
+        if ( split0.length > 1 ) {
+            const split1 = split0[1].split(",");
+            if ( split1.length > 1 ) {
+                const split2 = split1[1].split(")");
+                if ( split2.length > 1 ) {
+                    let row = parseInt(split1[0]);
+                    let column = parseInt(split2[0]);
+                    if ( ('' + row) != "NaN" && ('' + column) != "NaN"){
+                        i = 3 * row + column;
+                    }
+                }
+            }
+        }
+        return i;
+    }
+
+    emboldenSingleSquare(index){
+        [0,1,2,3,4,5,6,7,8].map(position => {
+            let square = document.getElementById("s" + position);
+            if (square){
+                let squareStyle = (position == index) ? "boldSquare" : "square";
+                square.setAttribute("class", squareStyle);
+            }
+        });
+    }
+
     render() {
         const history = this.state.history;
         const current = history[this.state.stepNumber];
@@ -129,16 +163,21 @@ class Game extends React.Component {
         });
 
         let status;
-        let line;
+        let line = winner ? fetchWinner.line : null;
         if (winner) {
             status = 'Winner: ' + winner;
-            line = fetchWinner.line;
         } else if (isTie) {
             status = 'Draw: No Winner!';
         } else {
             status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
         }
         this.cleanupBackgrounds(line);
+
+        if (!winner){
+            let coordinate = current.coordinate;
+            let i = this.convertCoordinateToPosition(coordinate);
+            this.emboldenSingleSquare(i);
+        }        
 
         return (
         <div className="game">
