@@ -47,8 +47,7 @@ class Board extends React.Component {
     //          </button>
     //      </div>
     // </div>
-    render() {
-        
+    render() {        
         const rows = [];
         [0,1,2].forEach(i => {
             rows.push(this.renderRowOfSquares(i));
@@ -66,9 +65,34 @@ class Game extends React.Component {
                 squares: Array(9).fill(null),
                 coordinate: '',
             }],
+            moveOrder: 'ascending',
             stepNumber: 0,
             xIsNext: true,
         };
+    }
+
+    render() {
+        const history = this.state.history;
+    
+        // templated components
+        let board = this.buildBoard(history);
+        let toggler = this.buildMoveToggler();
+
+        // templated properties
+        let status = this.getStatus(history);
+        const moves = this.buildMoves(history);
+        this.applyStyling(history);
+
+        return (
+            <div className="game">
+                <div className="game-board">{board}</div>
+                <div className="game-info">
+                    <div>{status}</div>
+                    <ol>{toggler}</ol>
+                    <ol>{moves}</ol>
+                </div>
+            </div>
+        );
     }
 
     handleClick(i){
@@ -83,11 +107,13 @@ class Game extends React.Component {
         squares[i] = this.state.xIsNext ? 'X' : 'O';
 
         let coordinate = this.convertPositionToCoordinate(i);
+        
         this.setState({
             history: history.concat([{
                 squares: squares,
                 coordinate: coordinate
             }]),
+            moveOrder: this.state.moveOrder,
             stepNumber: history.length,
             xIsNext: !this.state.xIsNext,
         });
@@ -156,7 +182,39 @@ class Game extends React.Component {
         });
     }
 
-    getStatus(winner, isTie){
+    descending(a,b){
+        return b < a
+            ? -1
+            : b > a
+                ? 1
+                : 0;
+    }
+
+    buildMoves(history){
+        const sortAscending = ('' + this.state.moveOrder).toLowerCase() === 'ascending';
+        const keys = sortAscending ? Object.keys(history) : Object.keys(history).sort(this.descending);
+        const moves = [];
+        keys.forEach((key, move) => {
+            let referentMove = sortAscending ? move : keys.length - move - 1;
+            let coordinate = history[key].coordinate;
+            let desc = referentMove ?
+                'Go to move #' + referentMove + coordinate :
+                'Go to game start';
+            moves.push(
+                <li key={referentMove}>
+                    <button onClick={() => this.jumpTo(referentMove)}>{desc}</button>
+                </li>
+            );
+        })
+        return moves;
+    }
+
+    getStatus(history){
+        const current = history[this.state.stepNumber];
+        const fetchWinner = calculateWinner(current.squares);
+        const winner = fetchWinner.winner;
+        const isTie = this.state.history.length > 9;
+
         let status;
         if (winner) {
             status = 'Winner: ' + winner;
@@ -168,26 +226,10 @@ class Game extends React.Component {
         return status;
     }
 
-    render() {
-        const history = this.state.history;
+    applyStyling(history){
         const current = history[this.state.stepNumber];
         const fetchWinner = calculateWinner(current.squares);
         const winner = fetchWinner.winner;
-        const isTie = this.state.history.length > 9;
-
-        const moves = history.map((step,move) => {
-            const coordinate = step.coordinate;
-            const desc = move ?
-                'Go to move #' + move + coordinate :
-                'Go to game start';
-            return (
-                <li key={move}>
-                    <button onClick={() => this.jumpTo(move)}>{desc}</button>
-                </li>
-            );
-        });
-
-        let status = this.getStatus(winner, isTie);
         this.cleanupBackgrounds(winner, fetchWinner);
 
         if (!winner){
@@ -195,22 +237,33 @@ class Game extends React.Component {
             let i = this.convertCoordinateToPosition(coordinate);
             this.emboldenSingleSquare(i);
         }
-        
+    }
 
+    toggleMoves(){
+
+        const updatedMoveOrder = this.state.moveOrder === "ascending" ? "descending" : "ascending";
+        
+        this.setState({
+            moveOrder: updatedMoveOrder
+        });
+    }
+
+    buildBoard(history){
+        const current = history[this.state.stepNumber];
         return (
-        <div className="game">
-            <div className="game-board">
-                <Board
-                    squares={current.squares}
-                    onClick={(i) => this.handleClick(i)}
-                />
-            </div>
-            <div className="game-info">
-            <div>{status}</div>
-            <ol>{moves}</ol>
-            </div>
-        </div>
-        );
+            <Board
+                squares={current.squares}
+                onClick={(i) => this.handleClick(i)}
+            />
+        )
+    }
+
+    buildMoveToggler(){
+        return (
+            <button onClick={() => this.toggleMoves()}>
+                Invert Move Sequence
+            </button>
+        )
     }
 }
   
