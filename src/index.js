@@ -1,47 +1,60 @@
 import React  from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-
-function Square(props){
-    return (
-        <button className="square" id={props.id} onClick={props.onClick}>
-            {props.value}
-        </button>
-    );
-}
   
 class Board extends React.Component {
 
     renderSquare(i) {
         return (
-            <Square
-                value={this.props.squares[i]}
-                id={"s" + i}
-                onClick={() => this.props.onClick(i)}
-            />
+            <button className="square" id={"s" + i} key={"s" + i} onClick={() => this.props.onClick(i)}>
+                {this.props.squares[i]}
+            </button>
         );
     }
 
+    // returns something like
+    //      <div board-row>
+    //          <button ...>
+    //              X / O 
+    //          </button>
+    //      </div>
+    renderRowOfSquares(rowIndex){
+        let squareIndices = [3 * rowIndex, 3 * rowIndex + 1, 3 * rowIndex + 2];
+
+        const squares = [];
+        squareIndices.forEach(k => {
+            squares.push(this.renderSquare(k));
+        })
+
+        return <div key={"r" + rowIndex} className="board-row"> {squares} </div>
+    }
+
+    // returns something like
+    // <div>
+    //      <div board-row>
+    //          <button ...>
+    //              X / O 
+    //          </button>
+    //      </div>
+    //      <div board-row>
+    //          <button ...>
+    //              X / O 
+    //          </button>
+    //      </div>
+    //      <div board-row>
+    //          <button ...>
+    //              X / O 
+    //          </button>
+    //      </div>
+    // </div>
     render() {
-        return (
-            <div>
-                <div className="board-row">
-                    {this.renderSquare(0)}
-                    {this.renderSquare(1)}
-                    {this.renderSquare(2)}
-                    </div>
-                <div className="board-row">
-                    {this.renderSquare(3)}
-                    {this.renderSquare(4)}
-                    {this.renderSquare(5)}
-                    </div>
-                <div className="board-row">
-                    {this.renderSquare(6)}
-                    {this.renderSquare(7)}
-                    {this.renderSquare(8)}
-                </div>
-            </div>
-        );
+        
+        const rows = [];
+        [0,1,2].forEach(i => {
+            rows.push(this.renderRowOfSquares(i));
+        })
+
+        return <div>{rows}</div>;
     }
 }
   
@@ -87,24 +100,24 @@ class Game extends React.Component {
         });
     }
 
-    // example: [0,1,2]
-    cleanupBackgrounds(line){
-        // no winner
-        if ( ['null','undefined'].indexOf('' + line ) >= 0 || ((line).hasOwnProperty("length") && line.length === 0) ) {
-            [0,1,2,3,4,5,6,7,8].map(position => {
-                let square = document.getElementById("s" + position);
-                if (square){
-                    square.setAttribute("class", "square");
-                }
-            });
-        } else {
-            line.map(position => {
-                let square = document.getElementById("s" + position);
-                if (square){
-                    square.setAttribute("class", "encolored");
-                }
-            });
-        }
+    cleanupBackgrounds(winner, fetchWinner){
+        let line = winner ? fetchWinner.line : null;
+        let allPositions = [0,1,2,3,4,5,6,7,8];
+        let haveNoWinner = ['null','undefined'].indexOf('' + line ) >= 0 || ((line).hasOwnProperty("length") && line.length === 0);
+
+        allPositions.forEach(position => {
+            let square = document.getElementById("s" + position);
+            if (square){
+                let squareStyle;
+                if ( haveNoWinner) {
+                    squareStyle = "square";
+                } else {
+                    let foundWinningSquare = line.indexOf(position) >= 0;
+                    squareStyle = !foundWinningSquare ? "square" : "encolored";
+                    }
+                square.setAttribute("class", squareStyle);
+            }
+        });
     }
 
     convertPositionToCoordinate(i){
@@ -122,9 +135,9 @@ class Game extends React.Component {
             if ( split1.length > 1 ) {
                 const split2 = split1[1].split(")");
                 if ( split2.length > 1 ) {
-                    let row = parseInt(split1[0]);
-                    let column = parseInt(split2[0]);
-                    if ( ('' + row) != "NaN" && ('' + column) != "NaN"){
+                    let row = parseInt(split1[0], 10);
+                    let column = parseInt(split2[0], 10);
+                    if ( ('' + row) !== "NaN" && ('' + column) !== "NaN"){
                         i = 3 * row + column;
                     }
                 }
@@ -134,13 +147,25 @@ class Game extends React.Component {
     }
 
     emboldenSingleSquare(index){
-        [0,1,2,3,4,5,6,7,8].map(position => {
+        [0,1,2,3,4,5,6,7,8].forEach(position => {
             let square = document.getElementById("s" + position);
             if (square){
-                let squareStyle = (position == index) ? "boldSquare" : "square";
+                let squareStyle = (position === index) ? "boldSquare" : "square";
                 square.setAttribute("class", squareStyle);
             }
         });
+    }
+
+    getStatus(winner, isTie){
+        let status;
+        if (winner) {
+            status = 'Winner: ' + winner;
+        } else if (isTie) {
+            status = 'Draw: No Winner!';
+        } else {
+            status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+        }
+        return status;
     }
 
     render() {
@@ -162,22 +187,15 @@ class Game extends React.Component {
             );
         });
 
-        let status;
-        let line = winner ? fetchWinner.line : null;
-        if (winner) {
-            status = 'Winner: ' + winner;
-        } else if (isTie) {
-            status = 'Draw: No Winner!';
-        } else {
-            status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-        }
-        this.cleanupBackgrounds(line);
+        let status = this.getStatus(winner, isTie);
+        this.cleanupBackgrounds(winner, fetchWinner);
 
         if (!winner){
             let coordinate = current.coordinate;
             let i = this.convertCoordinateToPosition(coordinate);
             this.emboldenSingleSquare(i);
-        }        
+        }
+        
 
         return (
         <div className="game">
