@@ -83,6 +83,7 @@ class Game extends React.Component {
         const moves = this.buildMoves(history);
         this.applyStyling(history);
 
+        // build and return the template
         return (
             <div className="game">
                 <div className="game-board">{board}</div>
