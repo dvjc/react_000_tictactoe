@@ -113,7 +113,6 @@ class Game extends React.Component {
                 squares: squares,
                 coordinate: coordinate
             }]),
-            moveOrder: this.state.moveOrder,
             stepNumber: history.length,
             xIsNext: !this.state.xIsNext,
         });
